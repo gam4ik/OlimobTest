@@ -11,79 +11,92 @@ import GameplayKit
 
 class GameScene: SKScene {
     
-    private var label : SKLabelNode?
-    private var spinnyNode : SKShapeNode?
+    private let player = SKShapeNode(circleOfRadius: 50)
+    private var finishBody = SKPhysicsBody()
+    private var didTouchEnable = true
+    private var isShownFinishLabel = false
     
     override func didMove(to view: SKView) {
-        
-        // Get label node from scene and store it for use later
-        self.label = self.childNode(withName: "//helloLabel") as? SKLabelNode
-        if let label = self.label {
-            label.alpha = 0.0
-            label.run(SKAction.fadeIn(withDuration: 2.0))
-        }
-        
-        // Create shape node to use during mouse interaction
-        let w = (self.size.width + self.size.height) * 0.05
-        self.spinnyNode = SKShapeNode.init(rectOf: CGSize.init(width: w, height: w), cornerRadius: w * 0.3)
-        
-        if let spinnyNode = self.spinnyNode {
-            spinnyNode.lineWidth = 2.5
-            
-            spinnyNode.run(SKAction.repeatForever(SKAction.rotate(byAngle: CGFloat(Double.pi), duration: 1)))
-            spinnyNode.run(SKAction.sequence([SKAction.wait(forDuration: 0.5),
-                                              SKAction.fadeOut(withDuration: 0.5),
-                                              SKAction.removeFromParent()]))
-        }
+        SceneSettings()
+        setPlayer()
+        run(SKAction.repeatForever(
+          SKAction.sequence([
+            SKAction.run(runPlayer),
+            SKAction.wait(forDuration: 1.0)
+            ])
+        ))
     }
     
-    
-    func touchDown(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.green
-            self.addChild(n)
-        }
-    }
-    
-    func touchMoved(toPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.blue
-            self.addChild(n)
-        }
-    }
-    
-    func touchUp(atPoint pos : CGPoint) {
-        if let n = self.spinnyNode?.copy() as! SKShapeNode? {
-            n.position = pos
-            n.strokeColor = SKColor.red
-            self.addChild(n)
+    override func update(_ currentTime: TimeInterval) {
+        if player.physicsBody?.allContactedBodies().contains(finishBody) ?? false {
+            didTouchEnable = false
+            player.removeAllActions()
+            showFinishLabel(isShownFinishLabel)
+            isShownFinishLabel = true
         }
     }
     
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        if let label = self.label {
-            label.run(SKAction.init(named: "Pulse")!, withKey: "fadeInOut")
+        if !didTouchEnable {
+            return
         }
+        for touch in touches {
+            self.touchDown(atPoint: touch.location(in: self))
+        }
+    }
+    
+    private func SceneSettings() {
+        self.physicsWorld.gravity = CGVector(dx: 0, dy: -1)
         
-        for t in touches { self.touchDown(atPoint: t.location(in: self)) }
+        guard let finish = self.childNode(withName: "Finish") as? SKSpriteNode else {
+            print("Error with finish")
+            return
+        }
+        guard let finishBody = finish.physicsBody else {
+            print("Error with finish body")
+            return
+        }
+        self.finishBody = finishBody
+
+        let camera = SKCameraNode()
+        self.camera = camera
+        player.addChild(camera)
     }
     
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchMoved(toPoint: t.location(in: self)) }
+    private func setPlayer() {
+        player.position = CGPoint(x: -800, y: -300)
+        player.lineWidth = 10
+        player.strokeColor = .orange
+        player.fillColor = .blue
+        player.name = "Player"
+        player.physicsBody = SKPhysicsBody(circleOfRadius: 50)
+        player.physicsBody?.isDynamic = true
+        player.physicsBody?.allowsRotation = false
+        self.addChild(player)
     }
     
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchUp(atPoint: t.location(in: self)) }
+    private func runPlayer() {
+        let actionMove = SKAction.moveBy(x: 100, y: 0, duration: 1)
+        player.run(SKAction.sequence([actionMove]))
     }
     
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
-        for t in touches { self.touchUp(atPoint: t.location(in: self)) }
+    private func touchDown(atPoint pos: CGPoint) {
+        jump()
+    }
+
+    private func jump() {
+        player.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 50))
     }
     
-    
-    override func update(_ currentTime: TimeInterval) {
-        // Called before each frame is rendered
+    private func showFinishLabel(_ isShown: Bool) {
+        if isShown {
+            return
+        }
+        let finishLabel = SKLabelNode(text: "The End?")
+        finishLabel.position = CGPoint(x: 700, y: -100)
+        finishLabel.fontSize = 80
+        finishLabel.fontColor = .orange
+        finishLabel.name = "FinishLabel"
+        self.addChild(finishLabel)
     }
 }
