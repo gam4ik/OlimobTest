@@ -9,11 +9,26 @@
 import UIKit
 import SpriteKit
 import GameplayKit
+import WebKit
 
 class GameViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        if let url = AppDelegate.launchURL {
+            if let host = url.host {
+                let webView = WKWebView(frame: CGRect(x: 0, y: 0, width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height))
+                guard let url = URL(string: "https://\(host)") else {
+                    print("Error with url")
+                    return
+                }
+                let request = URLRequest(url: url)
+                webView.load(request)
+                self.view.addSubview(webView)
+            }
+            return
+        }
         
         if let view = self.view as! SKView? {
             // Load the SKScene from 'GameScene.sks'
