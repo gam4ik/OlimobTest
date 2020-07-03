@@ -11,10 +11,12 @@ import GameplayKit
 
 class GameScene: SKScene {
     
+    private let sizeOfBarrier = CGSize(width: 60, height: 60)
+    private let sizeOfPlatform = CGSize(width: 2000, height: 70)
     private let player = SKShapeNode(circleOfRadius: 50)
-    private var finishBody = SKPhysicsBody()
     private var didTouchEnable = true
-    private var isShownFinishLabel = false
+    private var xPositionToMakeNewPlatform: CGFloat = 0
+    private var indent = 2000
     
     override func didMove(to view: SKView) {
         SceneSettings()
@@ -28,11 +30,10 @@ class GameScene: SKScene {
     }
     
     override func update(_ currentTime: TimeInterval) {
-        if player.physicsBody?.allContactedBodies().contains(finishBody) ?? false {
-            didTouchEnable = false
-            player.removeAllActions()
-            showFinishLabel(isShownFinishLabel)
-            isShownFinishLabel = true
+        if player.position.x >= xPositionToMakeNewPlatform {
+            makeNextPlatform(indent: indent)
+            xPositionToMakeNewPlatform += 2000
+            indent += 2000
         }
     }
     
@@ -47,16 +48,6 @@ class GameScene: SKScene {
     
     private func SceneSettings() {
         self.physicsWorld.gravity = CGVector(dx: 0, dy: -1)
-        
-        guard let finish = self.childNode(withName: "Finish") as? SKSpriteNode else {
-            print("Error with finish")
-            return
-        }
-        guard let finishBody = finish.physicsBody else {
-            print("Error with finish body")
-            return
-        }
-        self.finishBody = finishBody
 
         let camera = SKCameraNode()
         self.camera = camera
@@ -64,7 +55,7 @@ class GameScene: SKScene {
     }
     
     private func setPlayer() {
-        player.position = CGPoint(x: -800, y: -300)
+        player.position = CGPoint(x: -900, y: -300)
         player.lineWidth = 10
         player.strokeColor = .orange
         player.fillColor = .blue
@@ -75,8 +66,45 @@ class GameScene: SKScene {
         self.addChild(player)
     }
     
+    private func makeNextPlatform(indent: Int) {
+        let roof = makePlatform(indent: indent, yPosition: 0)
+        self.addChild(roof)
+        
+        let floor = makePlatform(indent: indent, yPosition: -500)
+        self.addChild(floor)
+        
+        let xPositionIndent = indent - 1000
+        makeBarrier(xPosition: xPositionIndent + 200)
+        makeBarrier(xPosition: xPositionIndent + 550)
+        makeBarrier(xPosition: xPositionIndent + 700)
+        makeBarrier(xPosition: xPositionIndent + 1050)
+        makeBarrier(xPosition: xPositionIndent + 1400)
+        makeBarrier(xPosition: xPositionIndent + 1650)
+        makeBarrier(xPosition: xPositionIndent + 1900)
+    }
+    
+    private func makePlatform(indent: Int, yPosition: Int) -> SKSpriteNode {
+        let platform = SKSpriteNode(color: .red, size: sizeOfPlatform)
+        platform.position = CGPoint(x: indent, y: yPosition)
+        platform.physicsBody = makePhysicsBody(size: sizeOfPlatform)
+        return platform
+    }
+    
+    private func makeBarrier(xPosition: Int) {
+        let barrier = SKSpriteNode(color: .white, size: CGSize(width: 60, height: 60))
+        barrier.position = CGPoint(x: xPosition, y: -435)
+        barrier.physicsBody = makePhysicsBody(size: sizeOfBarrier)
+        self.addChild(barrier)
+    }
+    
+    private func makePhysicsBody(size: CGSize) -> SKPhysicsBody {
+        let physicsBody = SKPhysicsBody(rectangleOf: size)
+        physicsBody.isDynamic = false
+        return physicsBody
+    }
+    
     private func runPlayer() {
-        let actionMove = SKAction.moveBy(x: 100, y: 0, duration: 1)
+        let actionMove = SKAction.moveBy(x: 200, y: 0, duration: 1)
         player.run(SKAction.sequence([actionMove]))
     }
     
@@ -88,15 +116,4 @@ class GameScene: SKScene {
         player.physicsBody?.applyImpulse(CGVector(dx: 0, dy: 50))
     }
     
-    private func showFinishLabel(_ isShown: Bool) {
-        if isShown {
-            return
-        }
-        let finishLabel = SKLabelNode(text: "The End?")
-        finishLabel.position = CGPoint(x: 700, y: -100)
-        finishLabel.fontSize = 80
-        finishLabel.fontColor = .orange
-        finishLabel.name = "FinishLabel"
-        self.addChild(finishLabel)
-    }
 }
